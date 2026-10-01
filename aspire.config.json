@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "BooksApi.AppHost/BooksApi.AppHost.csproj"
+  }
+}
