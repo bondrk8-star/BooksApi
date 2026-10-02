@@ -23,8 +23,22 @@ public partial class PostgresContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDefaultSchema("BooksSchema");
         OnModelCreatingPartial(modelBuilder);
+
+        modelBuilder.Entity<Book>()
+            .HasOne(b => b.Author)
+            .WithMany(a => a.Books)
+            .HasForeignKey(b => b.AuthorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Book>()
+            .HasOne(b => b.Genre)
+            .WithMany(g => g.Books)
+            .HasForeignKey(b => b.GenreId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
+
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }
