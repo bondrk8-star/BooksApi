@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BooksApi.Server
+namespace BooksApi.Server.Controllers
 {
     [ApiController]
     [Route("/Hello")]

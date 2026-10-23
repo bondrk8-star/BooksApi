@@ -1,3 +1,4 @@
+using BooksApi.Server;
 using BooksApi.Server.Models;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -11,10 +12,12 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddDbContext<PostgresContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("myPostgres")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("myPostgres"), o => o.MigrationsHistoryTable("MigrationsHistory", "BooksSchema")));
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.Configure<UsersSettings>(builder.Configuration.GetSection("ConfigureUsers"));
 
 var app = builder.Build();
 
