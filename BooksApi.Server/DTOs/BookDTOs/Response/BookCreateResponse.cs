@@ -8,6 +8,6 @@ namespace BooksApi.Server.DTOs.BookDTOs.Response
     {
         public string Name { get; set; }
         public string AuthorName { get; set; }
-        public string GenreName     { get; set; }
+        public string GenreName { get; set; }
     }
 }

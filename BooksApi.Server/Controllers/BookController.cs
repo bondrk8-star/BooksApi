@@ -1,6 +1,10 @@
-﻿using BooksApi.Server.DTOs.BookDTOs.Request;
+﻿using BooksApi.Server.Data;
+using BooksApi.Server.DTOs.BookDTOs;
+using BooksApi.Server.DTOs.BookDTOs.Request;
 using BooksApi.Server.DTOs.BookDTOs.Response;
+using BooksApi.Server.Extensions;
 using BooksApi.Server.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,14 +22,10 @@ namespace BooksApi.Server.Controllers
     public class BookController: ControllerBase
     {
         private readonly PostgresContext dbContext;
-        private readonly UsersSettings options;
-        public BookController(PostgresContext dbContext, IOptions<UsersSettings> options) 
+        public BookController(PostgresContext dbContext) 
         {
             this.dbContext = dbContext;
-            this.options = options.Value;
-            var json = this.options.ToJson(Formatting.Indented); //JsonConvert.SerializeObject(this.options, Formatting.Indented);
-            this.options = null;
-            this.options = json.FromJson<UsersSettings>();//JsonConvert.DeserializeObject<UsersSettings>(json);
+          
         }
 
         [HttpPost]
@@ -37,34 +37,60 @@ namespace BooksApi.Server.Controllers
             var AuthorBooks = await dbContext.Books.Where(b => b.AuthorId == request.AuthorId).Select(b => b.Name).ToListAsync();
             if (AuthorBooks.Contains(request.Name)) return Conflict("Такая книга есть");
 
-            if (options.AccesType != 0) return Forbid("Нет доступа");
+            var genre = await dbContext.Genres.Where(g => g.Id == request.GenreId).Select(g => g.Name).FirstOrDefaultAsync();
+            if (genre == null) return NotFound("Жанр не найден");
 
-            var NewBook = new Book() { Name = request.Name, AuthorId = request.AuthorId, GenreId = 0};
             
-            var Genre = (await dbContext.Genres.FirstOrDefaultAsync(a => a.Id == 0)).Name;
+
+            var NewBook = new Book() { Name = request.Name, AuthorId = request.AuthorId, GenreId = request.GenreId};
 
             await dbContext.Books.AddAsync(NewBook);
             await dbContext.SaveChangesAsync();
             return new BookCreateResponse
             {
-                Name = request.Name,
+                Name = NewBook.Name,
                 AuthorName = author,
-                GenreName = Genre
+                GenreName = genre
             };
         }
 
-        [HttpGet]
+        [HttpGet, Authorize(Policy = "Admin")]
         async public Task<ActionResult<BookGetResponse>> Get([FromQuery] BookGetRequest request)
         {
-            var GetBook = await dbContext.Books.AsNoTracking().FirstOrDefaultAsync(b => b.Id == request.Id);
+            var GetBook = await dbContext.Books.FirstOrDefaultAsync(b => b.Id == request.Id);
             if (GetBook == null) return NotFound("Книга не найдена");
+
+            var genreName = await dbContext.Genres.Where(g => g.Id == GetBook.GenreId).Select(g => g.Name).FirstOrDefaultAsync();
+
+            var authorName = await dbContext.Authors.Where(a => a.Id == GetBook.AuthorId).Select(a => a.Name).FirstOrDefaultAsync();
+
+            var userClaims = User.Claims;
 
             return new BookGetResponse
             {
                 Name = GetBook.Name,
                 Id = GetBook.Id,
-                Genre = GetBook.Genre.Name,
-                AuthorName = GetBook.Author.Name
+                Genre = genreName,
+                AuthorName = authorName
+            };
+        }
+
+        public async Task<ActionResult<BookGetListResponse>> GetList([FromQuery] BookGetListRequest request)
+        {
+            IQueryable<Book> sql = dbContext.Books.OrderBy(a => a.Name);
+
+            if (request.Search != null)
+            {
+                sql = sql.Where(a => a.Name.ToLower().Contains(request.Search.ToLower()));
+            }
+
+            var books = await sql.Skip((request.PaginationSettings.Page - 1) * request.PaginationSettings.Page).Take(request.PaginationSettings.PageSize).Select(b => new { b.AuthorId, b.GenreId, Item = new BookItem() { Name = b.Name, Id = b.Id } }).ToListAsync();
+            
+
+
+            return new BookGetListResponse
+            {
+                Books = books
             };
         }
 

@@ -3,14 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BooksApi.Server
+namespace BooksApi.Server.DTOs.AuthorDTOs
 {
-    public interface IBook
+    public class AuthorItem
     {
         public string Name { get; set; }
-        public Author Author { get; set; }
-        public Genre Genre { get; set; }
         public int Id { get; set; }
-        
     }
 }

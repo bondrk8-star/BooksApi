@@ -1,4 +1,5 @@
-﻿using BooksApi.Server.DTOs.AuthorDTOs.Request;
+﻿using BooksApi.Server.Data;
+using BooksApi.Server.DTOs.AuthorDTOs.Request;
 using BooksApi.Server.DTOs.AuthorDTOs.Response;
 using BooksApi.Server.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -50,7 +51,7 @@ namespace BooksApi.Server.Controllers
             Console.WriteLine("Пойдет в базу данных: " + sql.ToQueryString());
             var authors = await sql.ToListAsync();
 
-            if (authors.Count == 0) return NotFound("Нету");
+            if (!authors.Any()) return NotFound("Нету");
 
             var AuthorsIds = authors.Select( a => a.Id).ToList();
 
